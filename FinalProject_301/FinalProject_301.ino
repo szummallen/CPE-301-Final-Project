@@ -2,39 +2,48 @@
 #include <DHT_U.h>
 #include <LiquidCrystal.h>
 
-LiquidCrystal lcd(7, 6, 5, 4, 3, 2);
-DHT humiditySensor(humiditySensorPin, DHT11);
-
-const int p_rs = 8, p_en = 7, p_d4 = 6, p_d5 = 5, p_d6 = 4, p_d7 = 3;
-const int LED_yel = 11, LED_grn = 12, LED_red = 10, LED_blue = 13;
-
-#define lowWaterWarning 1
-#define highTempWarning 10
-
-#define waterSensorPower 2
-#define waterSensorPin A0
-
-#define humiditySensorPin 9
-
-#define fanPowerPin1 40
-#define fanPowerPin2 41
-#define pumpPowerPin 42
-
-#define disableButton 24
-
 const char* empty_str = "        ";
 enum STATE{OFF, IDL, ERR, RUN};
 STATE state_cur = IDL;
 
-dht humiditySensor;
+#define lowWaterWarning 1
+#define highTempWarning 10
+#define waterSensorPower 2
+#define waterSensorPin A0
+#define humiditySensorPin 9
+#define fanPowerPin1 40
+#define fanPowerPin2 41
+#define pumpPowerPin 42
+#define disableButton 24
+#define DHTPIN 11
+#define DHTTYPE DHT11
+
+DHT humiditySensor(humiditySensorPin, DHT11);
+int humidity = (int)humiditySensor.readHumidity;
+int temperature = (int)humiditySensor.readTemperature;
+
+float readTemp(){
+return humiditySensor.readTemperature();
+}
+
+DHT dht(DHTPIN, DHTTYPE);
+
+
+
+LiquidCrystal lcd(7, 6, 5, 4, 3, 2);
+
+
+const int p_rs = 8, p_en = 7, p_d4 = 6, p_d5 = 5, p_d6 = 4, p_d7 = 3;
+const int LED_yel = 11, LED_grn = 12, LED_red = 10, LED_blue = 13;
+
 
 int readHumidity(){
   int chk = humiditySensor.read(humiditySensorPin);
-  int humidity = humiditySensor.humidity; 
+  int humidity = humiditySensor.readHumidity; 
   while (humidity < -15){
     delay(25);
     chk = humiditySensor.read(humiditySensorPin);
-    humidity = humiditySensor.temperature;
+    humidity = humiditySensor.readHumidity;
   }
   return humidity;
 }
@@ -42,11 +51,11 @@ int readHumidity(){
 
 int readTemperature(){
   int chk = humiditySensor.read(humiditySensorPin);
-  int temperature = humiditySensor.temperature;
+  int temperature = humiditySensor.readTemperature;
   while (temperature < -15){
     delay(25);
     chk = humiditySensor.read(humiditySensorPin);
-    temperature = humiditySensor.temperature;
+    temperature = humiditySensor.readTemperature;
   }
   return temperature;
 }
@@ -97,7 +106,7 @@ void setup() {
 
   pinMode(fanPowerPin1, OUTPUT);
   pinMode(fanPowerPin2, OUTPUT);
-  pinMode(fanPowerPin, OUTPUT);
+  pinMode(pumpPowerPin, OUTPUT);
 
   pinMode(disableButton, INPUT_PULLUP);
 
@@ -105,9 +114,11 @@ void setup() {
 
 }
 
-void loop() {
-  print_status(state_cur);
-  handleLightsForState(state_cur);
+void LightsForState(STATE state) {
+  digitalWrite(LED_blue, LOW);
+  digitalWrite(LED_yel, LOW);
+  digitalWrite(LED_grn, LOW);
+  digitalWrite(LED_red, LOW);
 
   bool b_red = digitalRead(disableButton);
 
@@ -130,7 +141,6 @@ void loop() {
         disablePump();
         disableFans();
       }     
-    }
     break;    
 
     case IDL:
@@ -145,7 +155,7 @@ void loop() {
       disableFans();
     }
     else if(readTemp() > highTempWarning){
-      state_cur = RUN
+      state_cur = RUN;
       enableFans();
       enablePump();
     }
@@ -175,6 +185,7 @@ void loop() {
     disablePump();
     disableFans();
   }
+  break;
 }
 
 delay(1000);

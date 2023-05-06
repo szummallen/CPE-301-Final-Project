@@ -19,8 +19,8 @@ STATE state_cur = IDL;
 #define DHTTYPE DHT11
 
 DHT humiditySensor(humiditySensorPin, DHT11);
-int humidity = (int)humiditySensor.readHumidity;
-int temperature = (int)humiditySensor.readTemperature;
+int humidity = (int)humiditySensor.readHumidity();
+int temperature = (int)humiditySensor.readTemperature();
 
 float readTemp(){
 return humiditySensor.readTemperature();
@@ -28,22 +28,31 @@ return humiditySensor.readTemperature();
 
 DHT dht(DHTPIN, DHTTYPE);
 
-
-
 LiquidCrystal lcd(7, 6, 5, 4, 3, 2);
-
 
 const int p_rs = 8, p_en = 7, p_d4 = 6, p_d5 = 5, p_d6 = 4, p_d7 = 3;
 const int LED_yel = 11, LED_grn = 12, LED_red = 10, LED_blue = 13;
 
+void loop(){
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("Humidity: ");
+  lcd.print(readHumidity());
+  lcd.print("%");
+  lcd.setCursor(0, 1);
+  lcd.print("Temperature in C: ");
+  lcd.print(readTemperature());
+  lcd.print((char)223);
+  lcd.print("Celsius");
+}
 
 int readHumidity(){
   int chk = humiditySensor.read(humiditySensorPin);
-  int humidity = humiditySensor.readHumidity; 
+  int humidity = humiditySensor.readHumidity(); 
   while (humidity < -15){
     delay(25);
     chk = humiditySensor.read(humiditySensorPin);
-    humidity = humiditySensor.readHumidity;
+    humidity = humiditySensor.readHumidity();
   }
   return humidity;
 }
@@ -51,11 +60,11 @@ int readHumidity(){
 
 int readTemperature(){
   int chk = humiditySensor.read(humiditySensorPin);
-  int temperature = humiditySensor.readTemperature;
+  int temperature = (int)humiditySensor.readTemperature();
   while (temperature < -15){
     delay(25);
     chk = humiditySensor.read(humiditySensorPin);
-    temperature = humiditySensor.readTemperature;
+    temperature = (int)humiditySensor.readTemperature();
   }
   return temperature;
 }

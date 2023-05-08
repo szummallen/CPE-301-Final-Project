@@ -1,22 +1,13 @@
 #include <DHT.h>
 #include <DHT_U.h>
 #include <LiquidCrystal.h>
+#include <Wire.h>
+#include <RTClib.h>
+#include <Stepper.h>
 
 const char* empty_str = "        ";
 enum STATE{OFF, IDL, ERR, RUN};
 STATE state_cur = IDL;
-
-#define lowWaterWarning 1
-#define highTempWarning 10
-#define waterSensorPower 12
-#define waterSensorPin A0
-#define humiditySensorPin 9
-#define fanPowerPin1 40
-#define fanPowerPin2 41
-#define pumpPowerPin 42
-#define disableButton 24
-#define DHTPIN 11
-#define DHTTYPE DHT11
 
 #define LED_yel 2
 #define LED_grn 3
@@ -30,6 +21,16 @@ STATE state_cur = IDL;
 #define p_d6 10
 #define p_d7 11
 
+#define waterSensorPower 12
+
+#define fanPowerPin1 A0
+#define fanPowerPin2 A1
+#define pumpPowerPin A2
+
+#define disableButton A3
+
+#define setOutput(pin)
+
 
 
 DHT humiditySensor(humiditySensorPin, DHT11);
@@ -42,7 +43,7 @@ return humiditySensor.readTemperature();
 
 DHT dht(DHTPIN, DHTTYPE);
 
-LiquidCrystal lcd(7, 6, 5, 4, 3, 2);
+LiquidCrystal lcd(p_rs, p_en, p_d4, p_d5, p_d6, p_d7);
 
 const int p_rs = 8, p_en = 7, p_d4 = 6, p_d5 = 5, p_d6 = 4, p_d7 = 3;
 const int LED_yel = 11, LED_grn = 12, LED_red = 10, LED_blue = 13;

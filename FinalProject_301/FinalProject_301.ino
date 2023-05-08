@@ -1,6 +1,7 @@
+#include <Serial.h>
+#include <LiquidCrystal.h>
 #include <DHT.h>
 #include <DHT_U.h>
-#include <LiquidCrystal.h>
 #include <Wire.h>
 #include <RTClib.h>
 #include <Stepper.h>
@@ -29,188 +30,168 @@ STATE state_cur = IDL;
 
 #define disableButton A3
 
-#define setOutput(pin)
+#define setOutput(pin) pinMode(pin, OUTPUT)
+#define setInput(pin) pinMode(pin, INPUT_PULLUP)
 
+setOutput(LED_yel);
+setOutput(LED_grn);
+setOutput(LED_red);
+setOutput(LED_blue);
 
+setOutput(p_rs);
+setOutput(p_en);
+setOutput(p_d4);
+setOutput(p_d5);
+setOutput(p_d6);
+setOutput(p_d7);
 
-DHT humiditySensor(humiditySensorPin, DHT11);
-int humidity = (int)humiditySensor.readHumidity();
-int temperature = (int)humiditySensor.readTemperature();
+setOutput(fanPowerPin1);
+setOutput(fanPowerPin2);
+setOutput(pumpPowerPin);
 
-float readTemp(){
-return humiditySensor.readTemperature();
-}
-
-DHT dht(DHTPIN, DHTTYPE);
+setInput(disableButton);
 
 LiquidCrystal lcd(p_rs, p_en, p_d4, p_d5, p_d6, p_d7);
 
-const int p_rs = 8, p_en = 7, p_d4 = 6, p_d5 = 5, p_d6 = 4, p_d7 = 3;
-const int LED_yel = 11, LED_grn = 12, LED_red = 10, LED_blue = 13;
+Stepper stepper(200, 8, 10, 9, 11);
 
-void loop(){
-  lcd.clear();
-  lcd.setCursor(0, 0);
-  lcd.print("Humidity: ");
-  lcd.print(readHumidity());
-  lcd.print("%");
-  lcd.setCursor(0, 1);
-  lcd.print("Temperature in C: ");
-  lcd.print(readTemperature());
-  lcd.print((char)223);
-  lcd.print("Celsius");
-}
+DHT dht(2, DHT11);
 
-int readHumidity(){
-  int chk = humiditySensor.read(humiditySensorPin);
-  int humidity = humiditySensor.readHumidity(); 
-  while (humidity < -15){
-    delay(25);
-    chk = humiditySensor.read(humiditySensorPin);
-    humidity = humiditySensor.readHumidity();
-  }
-  return humidity;
-}
+RTC_DS3231 rtc;
 
+int water_sensor_pin = A0;
+volatile bool water_level_high = false;
 
-int readTemperature(){
-  int chk = humiditySensor.read(humiditySensorPin);
-  int temperature = (int)humiditySensor.readTemperature();
-  while (temperature < -15){
-    delay(25);
-    chk = humiditySensor.read(humiditySensorPin);
-    temperature = (int)humiditySensor.readTemperature();
-  }
-  return temperature;
-}
+int fan_power_pin1 = A1;
+int fan_power_pin2 = A2;
+int pump_power_pin = A3;
+int fan_speed = 0;
+int pump_speed = 0;
 
-int readWaterSensor(){
+int stepper_speed = 100;
+
+int disable_button_pin = 4;
+volatile bool disable_button_pressed = false;
+
+void setup(){
+  setOutput(LED_yel);
+  setOutput(LED_grn);
+  setOutput(LED_red);
+  setOutput(LED_blue);
+
+  setOutput(p_rs);
+  setOutput(p_en);
+  setOutput(p_d4);
+  setOutput(p_d5);
+  setOutput(p_d6);
+  setOutput(p_d7);
+
+  setOutput(fanPowerPin1);
+  setOutput(fanPowerPin2);
+  setOutput(pumpPowerPin);
+
+  setInput(disableButton);
+
   digitalWrite(waterSensorPower, HIGH);
-  delay(10);
-  int val = analogRead(waterSensorPin);
-  digitalWrite(waterSensorPower, LOW);
-  return val;
 }
 
-void enableFans(){
-  digitalWrite(fanPowerPin1, HIGH);
-  digitalWrite(fanPowerPin2, HIGH);
-}
+Serial.begin(9600);
 
-void disableFans(){
-  digitalWrite(fanPowerPin1, LOW);
-  digitalWrite(fanPowerPin2, LOW);
-}
-
-void enablePump(){
-  digitalWrite(pumpPowerPin, HIGH);
-}
-
-void disablePump(){
-  digitalWrite(pumpPowerPin, LOW);
-}
-
-
-void setup() {
-  lcd.begin(16, 2);
-  pinMode(LED_yel, OUTPUT);
-  pinMode(LED_grn, OUTPUT);
-  pinMode(LED_red, OUTPUT);
-  pinMode(LED_blue, OUTPUT);
-
-  pinMode(p_rs, OUTPUT);
-  pinMode(p_en, OUTPUT);
-  pinMode(p_d4, OUTPUT);
-  pinMode(p_d5, OUTPUT);
-  pinMode(p_d6, OUTPUT);
-  pinMode(p_d7, OUTPUT);
-
-  pinMode(waterSensorPower, OUTPUT);
-  digitalWrite(waterSensorPower, LOW);
-
-  pinMode(fanPowerPin1, OUTPUT);
-  pinMode(fanPowerPin2, OUTPUT);
-  pinMode(pumpPowerPin, OUTPUT);
-
-  pinMode(disableButton, INPUT_PULLUP);
-
-  Serial.begin(9600);
-
-}
-
-void LightsForState(STATE state) {
-  digitalWrite(LED_blue, LOW);
-  digitalWrite(LED_yel, LOW);
-  digitalWrite(LED_grn, LOW);
-  digitalWrite(LED_red, LOW);
-
-  bool b_red = digitalRead(disableButton);
-
-  switch(state_cur){
-    case OFF:
-    if (b_red){
-      if(readWaterSensor() < lowWaterWarning){
-        state_cur = ERR;
-        disablePump();
-        disableFans();        
-      }      
-    }
-      else if(readTemp() > highTempWarning){
-        state_cur = RUN;
-        enableFans();
-        enablePump();
-      }
-      else{
-        state_cur = IDL;
-        disablePump();
-        disableFans();
-      }     
-    break;    
-
-    case IDL:
-    if(readWaterSensor() < lowWaterWarning){
-      state_cur = ERR;
-      disablePump();
-      disableFans();
-    }
-    else if(b_red){
-      state_cur = OFF;
-      disablePump();
-      disableFans();
-    }
-    else if(readTemp() > highTempWarning){
-      state_cur = RUN;
-      enableFans();
-      enablePump();
-    }
-  break;
-
-  case ERR:
-  if(readWaterSensor() > lowWaterWarning){
-    state_cur = IDL;
-    disablePump();
-    disableFans();
+void updateWaterLevel(){
+  int water_level = analogRead(water_sensor_pin);
+  if(water_level > 500){
+    water_level_high = true;
+    digitalWrite(waterSensorPower, LOW);
+  } else{
+    water_level_high = false;
+    digitalWrite(waterSensorPower, HIGH);
   }
-  break;
-
-  case RUN:
-  if(readWaterSensor() < lowWaterWarning){
-    state_cur = ERR;
-    disablePump();
-    disableFans();
-  }
-  else if(b_red == LOW){
-    state_cur = OFF;
-    disablePump();
-    disableFans();
-  }
-  else if(readTemp() < highTempWarning){
-    state_cur = IDL;
-    disablePump();
-    disableFans();
-  }
-  break;
 }
 
-delay(1000);
+void readDHT11(float &temperature, float &humidity){
+  humidity = dht.readHumidity();
+  temperature = dht.readTemperature();
+}
+
+void updateFanAndPump(float temperature, float humidity){
+  if(temperature > 25 || humidity > 60){
+    fan_speed = 255;
+    pump_speed = 255;
+  } else if(temperature > 23 || humidity > 50){
+    fan_speed = 150;
+    pump_speed = 150;
+  } else{
+    fan_speed = 0;
+    pump_speed = 0;
+  }
+  
+  analogWrite(fan_power_pin1, fan_speed);
+  analogWrite(fan_power_pin2, fan_speed);
+  analogWrite(pump_power_pin, pump_speed);
+
+  digitalWrite(LED_red, fan_speed > 0 || pump_speed > 0);
+  digitalWrite(LED_grn, fan_speed > 0 && pump_speed > 0);
+  digitalWrite(LED_yel, fan_speed == 0 && pump_speed > 0);
+  digitalWrite(LED_blue, fan_speed == 0 && pump_speed == 0);
+
+void loop() {
+  uint16_t water_level = 0;
+  for(int i = 0; i < 16; i++){
+    water_level += analogRead(A5);
+  }
+  water_level /= 16;
+  if (water_level < WATER_LEV_THRESHOLD){
+    digitalWrite(waterSensorPower, HIGH);
+    lcd_set_cursor(0, 0);
+    lcd_write_string("Water Level LOW");
+    lcd_set_cursor(0, 1);
+    lcd_write_string("Water Pump ON");
+    analogWrite(pumpPowerPin, 255);
+  } else{
+    digitalWrite(waterSensorPower, LOW);
+    lcd_set_cursor(0, 0);
+    lcd_write_string("Water Level NOMINAL");
+    lcd_set_cursor(0, 1);
+    lcd_write_string("Water Pump OFF");
+    analogWrite(pumpPowerPin, 0);
+  }
+
+
+  int chk = DHT.read11(DHT11_PIN);
+  if (chk == DHTLIB_OK){
+    float temp = DHT.temperature;
+    float humi = DHT.humidity;
+    lcd_set_cursor(13, 0);
+    lcd_write_string("Temp:");
+    lcd_set_cursor(18, 0);
+    lcd_write_float(temp, 2);
+    lcd_write_string("C");
+    lcd_set_cursor(13, 1);
+    lcd_write_string("Humidity:");
+    lcd_set_cursor(22, 1);
+    lcd_write_float(hum, 2);
+    lcd_write_string("%");
+  } else{
+    lcd_set_cursor(13, 0);
+    lcd_write_string("Temp: --.- C");
+    lcd_set_cursor(13, 1);
+    lcd_write_string("Humidity: --.- %")
+  }
+
+  if(digitalRead(disableButton) == LOW){
+    lcd_set_cursor(0, 2);
+    lcd_write_string("Vent Control OFF");
+  } else {
+    int pot_value = analogRead(A4);
+    int steps = map(pot_value, 0, 1023, -MAX_STEPS, MAX_STEPS);
+    stepper.step(steps);
+    lcd_set_cursor(0, 2);
+    lcd_write_string("Vent Control ON");
+    lcd_set_cursor(0, 3);
+    lcd_write_string("Direction:");
+    lcd_set_cursor(11, 0);
+    lcd_write_string(steps >= 0 ? "FWD" : "REV");
+  }
+  delay(1000);
+  }
 }

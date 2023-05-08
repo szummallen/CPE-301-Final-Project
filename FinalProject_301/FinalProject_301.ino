@@ -8,7 +8,7 @@ STATE state_cur = IDL;
 
 #define lowWaterWarning 1
 #define highTempWarning 10
-#define waterSensorPower 2
+#define waterSensorPower 12
 #define waterSensorPin A0
 #define humiditySensorPin 9
 #define fanPowerPin1 40
@@ -17,6 +17,20 @@ STATE state_cur = IDL;
 #define disableButton 24
 #define DHTPIN 11
 #define DHTTYPE DHT11
+
+#define LED_yel 2
+#define LED_grn 3
+#define LED_red 4
+#define LED_blue 5
+
+#define p_rs 6
+#define p_en 7
+#define p_d4 8
+#define p_d5 9
+#define p_d6 10
+#define p_d7 11
+
+
 
 DHT humiditySensor(humiditySensorPin, DHT11);
 int humidity = (int)humiditySensor.readHumidity();

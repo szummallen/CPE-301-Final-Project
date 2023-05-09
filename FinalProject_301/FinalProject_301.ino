@@ -1,4 +1,3 @@
-#include <Serial.h>
 #include <LiquidCrystal.h>
 #include <DHT.h>
 #include <DHT_U.h>
@@ -9,8 +8,10 @@
 const char* empty_str = "        ";
 enum STATE{OFF, IDL, ERR, RUN};
 STATE state_cur = IDL;
+#define setOutput(pin) pinMode(pin, OUTPUT)
+#define setInput(pin) pinMode(pin, INPUT_PULLUP)
 
-#define LED_yel 2
+#define LED_yel 12
 #define LED_grn 3
 #define LED_red 4
 #define LED_blue 5
@@ -30,8 +31,8 @@ STATE state_cur = IDL;
 
 #define disableButton A3
 
-#define setOutput(pin) pinMode(pin, OUTPUT)
-#define setInput(pin) pinMode(pin, INPUT_PULLUP)
+void setOutput(int pin){ pinMode(pin, OUTPUT);}
+void setInput(int pin){ pinMode(pin, INPUT_PULLUP);}
 
 setOutput(LED_yel);
 setOutput(LED_grn);
@@ -74,6 +75,8 @@ int disable_button_pin = 4;
 volatile bool disable_button_pressed = false;
 
 void setup(){
+  Serial.begin(9600);
+  
   setOutput(LED_yel);
   setOutput(LED_grn);
   setOutput(LED_red);
@@ -95,7 +98,7 @@ void setup(){
   digitalWrite(waterSensorPower, HIGH);
 }
 
-Serial.begin(9600);
+
 
 void updateWaterLevel(){
   int water_level = analogRead(water_sensor_pin);

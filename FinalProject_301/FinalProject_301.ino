@@ -1,5 +1,6 @@
-#include <LiquidCrystal.h>
 #include <DHT.h>
+#include <DHT_U.h>
+#include <LiquidCrystal.h>
 #include <Wire.h>
 #include <RTClib.h>
 #include <Stepper.h>
@@ -43,6 +44,7 @@ STATE state_cur = IDL;
 
 #define DHT11_PIN 3
 #define DHTTYPE DHT11
+#define DHTLIB_OK 0
 
 #define disableButton_reg PORTC
 #define disableButton_pin 6
@@ -63,8 +65,6 @@ int disable_button_pin = 4;
 volatile bool disable_button_pressed = false;
 unsigned long previousTime = 0;
 const long interval = 1000;
-float temp = temperature;
-float humi = humidity;
 
 void setup(){
   Serial.begin(9600);
@@ -92,9 +92,11 @@ void setup(){
 
 void setOutput(uint8_t port, int pin){
   port |= (1 << pin);
-}
+  }
+
+
 void setInput(uint8_t port, int pin){
-  port &= ~(1 << pin);
+ port &= ~(1 << pin);
 }
 
 void updateWaterLevel(){
@@ -108,9 +110,10 @@ void updateWaterLevel(){
   }
 }
 
-void readDHT11(float temperature, float humidity){
-  humidity = dht.readHumidity();
-  temperature = dht.readTemperature();
+void readDHT11(int pin, float *temperature, float *humidity){
+  DHT dht(pin, DHT11);
+  *humidity = dht.readHumidity();
+  *temperature = dht.readTemperature();
 }
 
 void updateFanAndPump(float temperature, float humidity){
@@ -160,7 +163,7 @@ void loop() {
     previousTime = millis();
   }
 
-  uint16_t water_level = 0;
+  uint16_t water_level = 0;  
   for(int i = 0; i < 16; i++){
     water_level += analogRead(A5);
   }
@@ -180,20 +183,17 @@ void loop() {
     lcd.print("Water Pump OFF");
     analogWrite(pumpPowerPin_pin, 0);
   }
-
-
-  int chk = readDHT11(DHT11_PIN);
-  if (chk == DHTLIB_OK){
-    
+  float temperature, humidity;
+  if (readDHT11 == DHTLIB_OK){
     lcd.setCursor(13, 0);
     lcd.print("Temp:");
     lcd.setCursor(18, 0);
-    lcd.setCursor(temp, 2);
+    lcd.print(temperature, 2);
     lcd.print("C");
     lcd.setCursor(13, 1);
     lcd.print("Humidity:");
     lcd.setCursor(22, 1);
-    lcd.print(humi, 2);
+    lcd.print(humidity, 2);
     lcd.print("%");
   } else{
     lcd.setCursor(13, 0);
